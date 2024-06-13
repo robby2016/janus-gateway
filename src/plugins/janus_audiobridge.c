@@ -8172,6 +8172,8 @@ static void *janus_audiobridge_mixer_thread(void *data) {
 	int i=0;
 	int count = 0, rf_count = 0, pf_count = 0, prev_count = 0;
 	int lgain = 0, rgain = 0, diff = 0;
+	int passed_time = 15000;
+        int sleep_time = 5000;
 	while(!g_atomic_int_get(&stopping) && !g_atomic_int_get(&audiobridge->destroyed)) {
 		/* See if it's time to prepare a frame */
 		gettimeofday(&now, NULL);
@@ -8181,11 +8183,29 @@ static void *janus_audiobridge_mixer_thread(void *data) {
 			d_us += 1000000;
 			--d_s;
 		}
+		
+		if (prev_count != 0) {
+                        passed_time = 15000;
+                        sleep_time = 5000;
+                } else {
+                        passed_time = 150000;
+                        sleep_time = 50000;
+                }
+
 		passed = d_s*1000000 + d_us;
-		if(passed < 15000) {	/* Let's wait about 15ms at max */
+		
+		/*
+		if(passed < 15000) {	/* Let's wait about 15ms at max *//*
 			g_usleep(5000);
 			continue;
 		}
+		*/
+		
+                if(passed < passed_time) {    /* Let's wait about 15ms at max */
+                        g_usleep(sleep_time);
+                        continue;
+                }
+		
 		/* If we're recording to a wav file, update the info */
 		if(g_atomic_int_get(&audiobridge->record) && !g_atomic_int_get(&audiobridge->wav_header_added)) {
 			JANUS_LOG(LOG_VERB, "Adding WAV header for recording %s (%s)...\n", audiobridge->room_id_str, audiobridge->room_name);
